@@ -3,10 +3,9 @@ import Resume from "../models/resume.model.js";
 import Analysis from "../models/analysis.model.js";
 import { PDFParse } from "pdf-parse";
 
-const extractTextFromPDF = async (filepath) => {
+const extractTextFromBuffer = async (buffer) => {
     try {
-        const dataBuffer = fs.readFileSync(filepath);
-        const parser = new PDFParse({ data: dataBuffer });
+        const parser = new PDFParse({ data: buffer });
         const result = await parser.getText();
         await parser.destroy();
         return result.text;
@@ -24,10 +23,8 @@ const uploadResume = async (req, res) => {
                 .json({ message: "Please upload a PDF file" });
         }
 
-        const filepath = req.file.path;
         const originalFileName = req.file.originalname;
-
-        const extractedText = await extractTextFromPDF(filepath);
+        const extractedText = await extractTextFromBuffer(req.file.buffer);
 
         if (!extractedText || extractedText.trim() === "") {
             return res
@@ -39,10 +36,8 @@ const uploadResume = async (req, res) => {
             user: req.user._id,
             originalFileName,
             extractedText,
-            isAnalyzed: false,
+            isAnalysed: false,
         });
-
-        fs.unlinkSync(filepath);
 
         return res.status(201).json({
             message: "Resume uploaded successfully",
@@ -50,7 +45,6 @@ const uploadResume = async (req, res) => {
             originalFileName: resume.originalFileName,
         });
     } catch (error) {
-        if (req.file) fs.unlinkSync(req.file.path);
         console.error("Error uploading resume:", error);
         return res.status(500).json({ message: "Error uploading resume" });
     }
