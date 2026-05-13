@@ -316,6 +316,8 @@ const resetPassword = async (req, res) => {
     }
 };
 
+import axios from "axios";
+
 const googleAuth = async (req, res) => {
     try {
         const { googleToken } = req.body;
@@ -325,16 +327,41 @@ const googleAuth = async (req, res) => {
                 .json({ message: "Google token is required" });
         }
 
-        const ticket = await client.verifyIdToken({
-            idToken: googleToken,
-            audience: [
-                process.env.GOOGLE_WEB_CLIENT_ID,
-                process.env.GOOGLE_ANDROID_CLIENT_ID,
-                process.env.GOOGLE_IOS_CLIENT_ID,
-            ],
-        });
+        let name, email, googleId;
 
-        const { name, email, sub: googleId } = ticket.getPayload();
+        // ID tokens are JWTs with 3 segments. Access tokens have 2.
+        const isIdToken = googleToken.split(".").length === 3;
+
+        if (isIdToken) {
+            const ticket = await client.verifyIdToken({
+                idToken: googleToken,
+                audience: [
+                    process.env.GOOGLE_WEB_CLIENT_ID,
+                    process.env.GOOGLE_ANDROID_CLIENT_ID,
+                    process.env.GOOGLE_IOS_CLIENT_ID,
+                ],
+            });
+            const payload = ticket.getPayload();
+            name = payload.name;
+            email = payload.email;
+            googleId = payload.sub;
+        } else {
+            // Treat as OAuth access token — fetch profile from Google's userinfo endpoint
+            const { data } = await axios.get(
+                "https://www.googleapis.com/oauth2/v3/userinfo",
+                { headers: { Authorization: `Bearer ${googleToken}` } }
+            );
+
+            if (!data.email_verified) {
+                return res
+                    .status(401)
+                    .json({ message: "Google email is not verified" });
+            }
+
+            name = data.name;
+            email = data.email;
+            googleId = data.sub;
+        }
 
         let user = await User.findOne({ email });
 
@@ -346,11 +373,9 @@ const googleAuth = async (req, res) => {
                 password: googleId,
                 isVerified: true,
             });
-        } else {
-            if (!user.googleId) {
-                user.googleId = googleId;
-                await user.save({ validateBeforeSave: false });
-            }
+        } else if (!user.googleId) {
+            user.googleId = googleId;
+            await user.save({ validateBeforeSave: false });
         }
 
         const { accessToken, refreshToken } =
