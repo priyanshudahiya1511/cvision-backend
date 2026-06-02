@@ -1,8 +1,8 @@
-import moongoose from "mongoose";
+import mongoose from "mongoose";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 
-const userSchema = new moongoose.Schema(
+const userSchema = new mongoose.Schema(
     {
         name: {
             type: String,
@@ -74,6 +74,6 @@ userSchema.methods.createRefreshToken = function () {
     );
 };
 
-const User = moongoose.model("User", userSchema);
+const User = mongoose.model("User", userSchema);
 
 export default User;
