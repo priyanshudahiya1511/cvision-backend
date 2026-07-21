@@ -20,9 +20,17 @@ const matchResultSchema = new mongoose.Schema(
             type: Number,
             required: true,
         },
-        analysis: {
+        summary: {
             type: String,
             required: true,
+        },
+        coveredSkills: {
+            type: [String],
+            default: [],
+        },
+        missingSkills: {
+            type: [String],
+            default: [],
         },
     },
     { timestamps: true }

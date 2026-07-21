@@ -54,31 +54,39 @@ ${jobDescription}
 
 The calculated semantic match score is ${matchPercent}%.
 
-List:
-1. 3-5 specific skills/requirements from the JD that the resume clearly covers
-2. 3-5 specific skills/requirements from the JD that are missing or weak in the resume
+Respond ONLY in this JSON format, no extra text, no markdown backticks:
+{
+    "summary": "<1-2 sentence overall verdict on fit>",
+    "coveredSkills": [<3-6 short strings, specific skills/requirements the resume covers>],
+    "missingSkills": [<3-6 short strings, specific skills/requirements missing or weak>]
+}
 
-Be specific — name actual skills/tools/requirements, not generic statements.`;
+Keep each skill entry SHORT (a few words, like a tag) — not a full sentence.`;
 
         const response = await ai.models.generateContent({
             model: "gemini-2.5-flash",
             contents: [{ text: prompt }],
         });
 
-        const analysis = response.text;
+        const cleaned = response.text.replace(/```json|```/g, "").trim();
+        const parsed = JSON.parse(cleaned);
 
         const matchResult = await MatchResult.create({
             user: req.user._id,
             resume: resume._id,
             jobDescription,
             matchPercent,
-            analysis,
+            summary: parsed.summary || "",
+            coveredSkills: parsed.coveredSkills || [],
+            missingSkills: parsed.missingSkills || [],
         });
 
         return res.json({
             matchId: matchResult._id,
             matchPercent,
-            analysis,
+            summary: matchResult.summary,
+            coveredSkills: matchResult.coveredSkills,
+            missingSkills: matchResult.missingSkills,
         });
     } catch (error) {
         console.error("Error in getMatchScore:", error);
@@ -104,7 +112,7 @@ export const getMatchHistory = async (req, res) => {
 
         const matches = await MatchResult.find({ resume: resumeId })
             .sort({ createdAt: -1 })
-            .select("-analysis"); // list view: skip the long text, keep it light
+            .select("-jobDescription");
 
         return res.json({ matches });
     } catch (error) {
