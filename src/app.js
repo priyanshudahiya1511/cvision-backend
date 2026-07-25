@@ -24,10 +24,12 @@ import authRouter from "./routes/auth.routes.js";
 import resumeRouter from "./routes/resume.routes.js";
 import analysisRouter from "./routes/analysis.routes.js";
 import matchRouter from "./routes/match.routes.js";
+import suggestionRouter from "./routes/suggestions.routes.js";
 
 app.use("/api/V1/auth", authRouter);
 app.use("/api/V1/resume", resumeRouter);
 app.use("/api/V1/analysis", analysisRouter);
 app.use("/api/V1/match", matchRouter);
+app.use("/api/V1/suggestions", suggestionRouter);
 
 export { app };

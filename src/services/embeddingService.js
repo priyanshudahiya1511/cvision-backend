@@ -6,11 +6,6 @@ const ai = new GoogleGenAI({
 
 const EMBEDDING_MODEL = "gemini-embedding-001";
 
-/**
- * Convert a piece of text into an embedding vector.
- * @param {string} text
- * @returns {Promise<number[]>}
- */
 export const embedText = async (text) => {
     if (!text?.trim()) {
         throw new Error("embedText: text must be a non-empty string");
